@@ -37,15 +37,11 @@ class KekImageFormat {
         const int PIXELS_DATA_POSITION = PALETTE_LENGHT + HEADER_LENGHT;
         Span<byte> pixelsData = data.Slice(PIXELS_DATA_POSITION);
         _ParsePixels(pixelsData);
-
-        //ColorIndex[,] test = this.СuttingOutAFragment(1,2,1,2);
     }
 
     public KekImageFormat(int width, int hight, Color[,] palette, ColorIndex[,] pixels) {
         Width = width;
         Hight = hight;
-        //Palette = new Color[width, hight];
-        //palette.CopyTo(Palette, 0);
 
         Palette = palette;
 
@@ -182,13 +178,12 @@ class KekImageFormat {
         public int Y { get; }
     }
 
-    public KekImageFormat СuttingOutAFragment (int xStart, int xEnd, int yStart, int yEnd) {
-        //проверка 
-        ColorIndex[,] newMaterix = new ColorIndex[(yEnd-yStart) + 1, (xEnd-xStart) + 1];
+    public KekImageFormat СuttingOutAFragment (int yStart, int yEnd, int xStart, int xEnd) { 
+        ColorIndex[,] newMaterix = new ColorIndex[(xEnd-xStart) + 1, (yEnd-yStart) + 1];
         int indX = 0;
         int indY = 0;
-        for (int x=yStart; x <= yEnd; x++){
-            for (int y = xStart; y <= xEnd; y++) {
+        for (int x=xStart; x <= xEnd; x++){
+            for (int y = yStart; y <= yEnd; y++) {
                 newMaterix[indX, indY] = Pixels[x, y];
                 indY++;
             }
@@ -196,7 +191,7 @@ class KekImageFormat {
             indX++;
         }
 
-        return new KekImageFormat(xEnd-xStart + 1, yEnd-yStart + 1, this.Palette, newMaterix);
+        return new KekImageFormat(yEnd-yStart + 1, xEnd-xStart + 1, this.Palette, newMaterix);
     }
 
 
