@@ -10,9 +10,24 @@ File.WriteAllBytes("C:\\Users\\konov\\Desktop\\test.kek", kek.ToByteArray());
 
 var converter = new KekToTextureConverter();
 
-var texture = converter.Convert(kek);
+
+var test = kek.СuttingOutAFragment(1,2,0,3);
+//                                  X    Y
+
+
+var texture = converter.Convert(test);
 var sprite = new Sprite(texture);
 sprite.Scale *= 20;
+
+
+
+
+
+
+
+
+
+
 
 var window = new RenderWindow(new VideoMode(200, 200), "Image");
 window.Closed += (_, _) => window.Close();
