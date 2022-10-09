@@ -36,6 +36,19 @@ class KekImageFormat {
         const int PIXELS_DATA_POSITION = PALETTE_LENGHT + HEADER_LENGHT;
         Span<byte> pixelsData = data.Slice(PIXELS_DATA_POSITION, Width * Hight / PIXELS_IN_BYTE);
         _ParsePixels(pixelsData);
+
+        //ColorIndex[,] test = this.СuttingOutAFragment(1,2,1,2);
+    }
+
+    public KekImageFormat(int width, int hight, Color[,] palette, ColorIndex[,] pixels) {
+        Width = width;
+        Hight = hight;
+        //Palette = new Color[width, hight];
+        //palette.CopyTo(Palette, 0);
+
+        Palette = palette;
+
+        Pixels = pixels;
     }
 
     private void _ParseHeader(Span<byte> headerData) {
@@ -104,4 +117,34 @@ class KekImageFormat {
         public int X { get; }
         public int Y { get; }
     }
+
+    public KekImageFormat СuttingOutAFragment (int xStart, int xEnd, int yStart, int yEnd) {
+        //проверка 
+        ColorIndex[,] newMaterix = new ColorIndex[(yEnd-yStart) + 1, (xEnd-xStart) + 1];
+        int indX = 0;
+        int indY = 0;
+        for (int x=yStart; x <= yEnd; x++){
+            for (int y = xStart; y <= xEnd; y++) {
+                newMaterix[indX, indY] = Pixels[x, y];
+                indY++;
+            }
+            indY = 0;
+            indX++;
+        }
+
+        return new KekImageFormat(xEnd-xStart + 1, yEnd-yStart + 1, this.Palette, newMaterix);
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
 }
