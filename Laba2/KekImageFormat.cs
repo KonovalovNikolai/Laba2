@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System;
+using System.Drawing;
 
 class KekImageFormat {
     public int Width { get; private set; }
@@ -34,8 +35,72 @@ class KekImageFormat {
 
         Pixels = new ColorIndex[Width, Hight];
         const int PIXELS_DATA_POSITION = PALETTE_LENGHT + HEADER_LENGHT;
-        Span<byte> pixelsData = data.Slice(PIXELS_DATA_POSITION, Width * Hight / PIXELS_IN_BYTE);
+        Span<byte> pixelsData = data.Slice(PIXELS_DATA_POSITION);
         _ParsePixels(pixelsData);
+    }
+
+    public byte[] ToByteArray() {
+        int lenght = Width * Hight;
+        lenght = lenght % 2 == 1 ? lenght + 1 : lenght;
+        int bytesForPixels = lenght / 2;
+        
+        int arraySize = HEADER_LENGHT + PALETTE_LENGHT + bytesForPixels;
+        byte[] data = new byte[arraySize];
+
+        Span<byte> header = data.AsSpan().Slice(0, HEADER_LENGHT);
+        _ConvertHeader(header);
+
+        Span<byte> palette = data.AsSpan().Slice(HEADER_LENGHT, PALETTE_LENGHT);
+        _ConvertPalette(palette);
+
+        const int PIXELS_DATA_POSITION = PALETTE_LENGHT + HEADER_LENGHT;
+        Span<byte> pixels = data.AsSpan().Slice(PIXELS_DATA_POSITION);
+        _ConvertPixels(pixels);
+
+        return data;
+    }
+
+    private void _ConvertPixels(Span<byte> pixels) {
+        int pixelCount = 0;
+        int index = 0;
+        int data = 0;
+        foreach (var pixel in Pixels) {
+            int pixelData = 0;
+            pixelData = pixel.Y | (pixel.X << 2);
+
+            if(pixelCount % PIXELS_IN_BYTE == 0) {
+                data = pixelData;
+            }
+            else {
+                data |= pixelData << BITS_PER_PIXEL;
+                pixels[index++] = (byte)data;
+            }
+
+            if (Width * Hight % 2 == 1) {
+                pixels[index] = (byte)data;
+            }
+
+            pixelCount++;
+        }
+    }
+
+    private void _ConvertHeader(Span<byte> header) {
+        const int HIGHT_POSITION = HEADER_WIDTH_LENGHT;
+        const int PIXEL_LENGHT_POSITION = HIGHT_POSITION + HEADER_HIGHT_LENGHT;
+        const int PALETTE_LENGHT_POSITION = PIXEL_LENGHT_POSITION + HEADER_PIXEL_LENGHT;
+
+        BitConverter.TryWriteBytes(header, (ushort)Width);
+        BitConverter.TryWriteBytes(header.Slice(HIGHT_POSITION), (ushort)Hight);
+        BitConverter.TryWriteBytes(header.Slice(PIXEL_LENGHT_POSITION), (byte)BITS_PER_PIXEL);
+        BitConverter.TryWriteBytes(header.Slice(PALETTE_LENGHT_POSITION), (ushort)PALETTE_COLORS_NUMBER);
+    }
+
+    private void _ConvertPalette(Span<byte> palette) {
+        int index = 0;
+        foreach (var color in Palette) {
+            BitConverter.TryWriteBytes(palette.Slice(index*4), color.ToArgb());
+            index++;
+        }
     }
 
     private void _ParseHeader(Span<byte> headerData) {
@@ -60,7 +125,6 @@ class KekImageFormat {
             if (i % PALETTE_SIZE == 0 && i != 0)
                 index++;
             Span<byte> colorData = paletteData.Slice(i * PALETTE_COLOR_LENGHT, PALETTE_COLOR_LENGHT);
-            colorData[^1] = 0xff;
             int argb = BitConverter.ToInt32(colorData);
             Color color = Color.FromArgb(argb);
             Palette[i % PALETTE_SIZE, index] = color;
@@ -72,29 +136,29 @@ class KekImageFormat {
         const int Y_INDEX_MASK = 0b11;
         const int X_INDEX_SHIFT = BITS_PER_PIXEL / 2;
 
-        int i = 0;
-        int j = 0;
-        foreach (var pixelData in pixelsData) {
-            int pixel = pixelData & PIXEL_MASK;
+        int byteIndex = 0;
+        int pixelCounter = 0;
+        for (int i = 0; i < Pixels.GetLength(0); i++) {
+            for (int j = 0; j < Pixels.GetLength(1); j++) {
+                int pixelData;
+                if (pixelCounter % 2 == 0) {
+                    pixelData = pixelsData[byteIndex] & PIXEL_MASK;
+                }
+                else {
+                    pixelData = pixelsData[byteIndex] >> BITS_PER_PIXEL;
+                    byteIndex++;
+                }
 
-            int y = pixel & Y_INDEX_MASK;
-            int x = pixel >> X_INDEX_SHIFT;
+                int y = pixelData & Y_INDEX_MASK;
+                int x = pixelData >> X_INDEX_SHIFT;
 
-            Pixels[i, j++] = new ColorIndex(x, y);
+                Pixels[i, j] = new ColorIndex(x, y);
 
-            pixel = pixelData >> BITS_PER_PIXEL;
-
-            y = pixel & Y_INDEX_MASK;
-            x = pixel >> X_INDEX_SHIFT;
-
-            Pixels[i, j++] = new ColorIndex(x, y);
-
-            if (j == Width) {
-                i++;
-                j = 0;
+                pixelCounter++;
             }
         }
     }
+
     public readonly struct ColorIndex {
         public ColorIndex(int x, int y) {
             X = x;

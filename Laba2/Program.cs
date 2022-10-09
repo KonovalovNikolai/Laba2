@@ -2,10 +2,12 @@
 using SFML.Graphics;
 using SFML.Window;
 
-string imagePath = "C:\\Users\\konov\\Desktop\\image - Copy.kek";
+string imagePath = "C:\\Users\\konov\\Desktop\\3x3.kek";
 var imageData = File.ReadAllBytes(imagePath);
 
 var kek = new KekImageFormat(imageData);
+File.WriteAllBytes("C:\\Users\\konov\\Desktop\\test.kek", kek.ToByteArray());
+
 var converter = new KekToTextureConverter();
 
 var texture = converter.Convert(kek);
